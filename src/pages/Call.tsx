@@ -1,48 +1,144 @@
-import { useState } from "react";
-import { Mic, MicOff, Video, VideoOff, ScreenShare, Hand, MessageSquare, Users } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Mic, MicOff,
+  Video, VideoOff,
+  PhoneOff,
+  MessageSquare,
+  Users,
+  ScreenShare,
+  Hand,
+} from "lucide-react";
 
 export default function Call() {
-  const [mic, setMic] = useState(true);
-  const [cam, setCam] = useState(true);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [micOn, setMicOn] = useState(true);
+  const [camOn, setCamOn] = useState(true);
+
+  // get user media once
+  useEffect(() => {
+    let active = true;
+
+    (async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+        });
+        if (!active) return;
+        setStream(s);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = s;
+        }
+      } catch (e) {
+        console.error("getUserMedia failed", e);
+      }
+    })();
+
+    return () => {
+      active = false;
+      // cleanup
+      setStream(null);
+    };
+  }, []);
+
+  // toggle tracks without losing stream
+  const toggleMic = () => {
+    const tracks = stream?.getAudioTracks() ?? [];
+    tracks.forEach(t => (t.enabled = !t.enabled));
+    setMicOn(prev => !prev);
+  };
+  const toggleCam = () => {
+    const tracks = stream?.getVideoTracks() ?? [];
+    tracks.forEach(t => (t.enabled = !t.enabled));
+    setCamOn(prev => !prev);
+  };
 
   return (
-    <main className="relative p-4">
-      <div className="grid gap-2 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
-        {["you","maya","ken","li"].map((n) => (
-          <div key={n} className="relative rounded-xl border border-white/10 h-48 overflow-hidden bg-slate-900/70">
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900" />
-            <div className="absolute left-2 right-2 bottom-2 flex items-center justify-between bg-black/35 px-2 py-1 rounded-md text-sm">
-              <span>{n}</span>
-              <span className="text-slate-300">{n==="you" && !mic ? "muted" : ""}</span>
+    <main className="relative h-[calc(100vh-56px)] w-full bg-black text-white">
+      {/* stage: 1:1 layout; stacked on mobile, split on md+ */}
+      <div className="grid h-full w-full grid-cols-1 md:grid-cols-2">
+        {/* remote (placeholder for now) */}
+        <div className="relative flex items-center justify-center bg-neutral-950">
+          <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 to-black" />
+          <div className="text-neutral-400">waiting for remote…</div>
+          <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-lg text-sm">remote</div>
+        </div>
+
+        {/* local self-view */}
+        <div className="relative flex items-center justify-center bg-neutral-950">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className={`w-full h-full object-cover ${camOn ? '' : 'opacity-20'}`}
+          />
+          {!camOn && (
+            <div className="absolute inset-0 grid place-items-center text-neutral-400">
+              camera off
             </div>
+          )}
+          <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-lg text-sm">
+            you {micOn ? "" : "• muted"}
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* dock */}
-      <div className="fixed left-1/2 -translate-x-1/2 bottom-6 flex items-center gap-2 rounded-full border border-white/10 bg-slate-900/80 backdrop-blur px-2 py-2">
-        <DockBtn onClick={() => {}} label="leave" className="bg-red-600/80">⏏️</DockBtn>
-        <DockBtn onClick={() => setMic(!mic)} label="mic">{mic ? <Mic size={18}/> : <MicOff size={18}/>}</DockBtn>
-        <DockBtn onClick={() => setCam(!cam)} label="camera">{cam ? <Video size={18}/> : <VideoOff size={18}/>}</DockBtn>
-        <DockBtn onClick={() => {}} label="share"><ScreenShare size={18}/></DockBtn>
-        <DockBtn onClick={() => {}} label="raise hand"><Hand size={18}/></DockBtn>
+      {/* floating dock */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 px-3 py-2
+                      bg-black/60 backdrop-blur border border-white/10 rounded-full shadow-lg">
+        <DockBtn label="end call" className="bg-red-600 hover:bg-red-700 border-red-700" onClick={() => {}}>
+          <PhoneOff size={20} />
+        </DockBtn>
+
+        <DockBtn label="mic" onClick={toggleMic}>
+          {micOn ? <Mic size={20} /> : <MicOff size={20} />}
+        </DockBtn>
+
+        <DockBtn label="camera" onClick={toggleCam}>
+          {camOn ? <Video size={20} /> : <VideoOff size={20} />}
+        </DockBtn>
+
+        <DockBtn label="share" onClick={() => {}}>
+          <ScreenShare size={20} />
+        </DockBtn>
+
+        <DockBtn label="raise hand" onClick={() => {}}>
+          <Hand size={20} />
+        </DockBtn>
+
         <div className="w-px h-6 bg-white/10 mx-1" />
-        <DockBtn onClick={() => {}} label="chat"><MessageSquare size={18}/></DockBtn>
-        <DockBtn onClick={() => {}} label="people"><Users size={18}/></DockBtn>
+
+        <DockBtn label="chat" onClick={() => {}}>
+          <MessageSquare size={20} />
+        </DockBtn>
+        <DockBtn label="people" onClick={() => {}}>
+          <Users size={20} />
+        </DockBtn>
       </div>
     </main>
   );
 }
 
-function DockBtn({ children, onClick, label, className="" }:{
-  children: React.ReactNode; onClick: ()=>void; label: string; className?: string;
+function DockBtn({
+  children,
+  onClick,
+  label,
+  className = "",
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  label: string;
+  className?: string;
 }) {
   return (
     <button
       onClick={onClick}
-      aria-label={label}
       title={label}
-      className={`w-12 h-12 grid place-items-center rounded-full border border-white/10 bg-white/5 hover:bg-white/10 transition ${className}`}
+      aria-label={label}
+      className={`w-12 h-12 grid place-items-center rounded-full border border-white/10
+                  bg-white/10 hover:bg-white/20 transition ${className}`}
     >
       {children}
     </button>
