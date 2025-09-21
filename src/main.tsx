@@ -1,3 +1,8 @@
+import "@fontsource-variable/inter";
+import "@fontsource-variable/space-grotesk";
+import "./index.css";
+
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
