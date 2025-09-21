@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* app theme defaults */
+:root { color-scheme: dark; }
+html, body, #root { height: 100%; }
+body { @apply bg-slate-950 text-slate-100 antialiased; }
+
+/* primitive buttons/inputs – we’ll replace with components later */
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10 transition; }
+.btn-primary { @apply btn bg-brand-500 hover:bg-brand-600 border-brand-600 text-white; }
+.input { @apply w-full rounded-xl border border-white/10 bg-slate-900/60 px-4 py-2 outline-none focus:border-brand-500; }
+.card { @apply rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur shadow-glass; }
